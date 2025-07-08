@@ -1,0 +1,18 @@
+<!-- กรอบเล่นไฟล์ SWF ปรับขนาดตามใจ -->
+<div id="ruffle-player" style="width:800px;height:600px;margin:auto;"></div>
+
+<!-- โหลดตัวเล่น Ruffle (from unpkg CDN) -->
+<script src="https://unpkg.com/@ruffle-rs/ruffle"></script>
+
+<script>
+  window.addEventListener("DOMContentLoaded", () => {
+    // สร้างอินสแตนซ์ของ Ruffle
+    const ruffle = window.RufflePlayer.newest();
+    const player = ruffle.createPlayer();
+    document.getElementById("ruffle-player").appendChild(player);
+
+    // ชี้ไปที่ไฟล์ SWF ของเจี๊ยบ (ชื่อ 1394.swf)
+    // ถ้าไฟล์อยู่โฟลเดอร์เดียวกัน ใส่แค่นี้พอ
+    player.load("https://your‑site.github.io/ruffle-demo/1394.swf");
+  });
+</script>
