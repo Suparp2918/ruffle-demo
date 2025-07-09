@@ -2,46 +2,64 @@
 <html lang="th">
 <head>
 <meta charset="utf-8">
-<title>Ruffle – 1394.swf (auto)</title>
-
+<title>Ruffle Demo – 1394.swf</title>
 <style>
-  html,body{height:100%;margin:0;background:#e9f1ff;display:flex;justify-content:center;align-items:flex-start;font-family:sans-serif;}
-  /* ครอบตัวเล่น + ปุ่มให้เกาะกันตรงกลาง */
-  #wrap{margin-top:32px;text-align:center}
-  #player{width:90vw;max-width:1280px;aspect-ratio:4/3;box-shadow:0 0 18px #0003;border-radius:6px;overflow:hidden}
-  #btn-full{margin-top:8px;padding:6px 14px;border:none;border-radius:5px;background:#ffbe0b;font-weight:600;cursor:pointer}
+  html,body{
+    height:100%;margin:0;background:#e9f1ff;
+    display:flex;justify-content:center;align-items:flex-start;
+    font-family:sans-serif;
+  }
+
+  /* ครอบตัวเล่นกับปุ่มให้เกาะติดกัน */
+  #wrapper{margin-top:32px;text-align:center;}
+
+  /* ตัวเล่น Ruffle */
+  #ruffle-player{
+    width:90vw;max-width:1280px;aspect-ratio:4/3;
+    box-shadow:0 0 18px #0003;border-radius:6px;overflow:hidden;
+  }
+
+  /* ปุ่มเต็มจอ – อยู่ “ใต้ไฟล์” ชัด ๆ */
+  #btn-full{
+    margin-top:8px;
+    padding:6px 14px;border:none;border-radius:5px;
+    background:#ffbe0b;font-weight:600;cursor:pointer;
+  }
 </style>
 </head>
 <body>
 
-  <div id="wrap">
-    <div id="player"></div>
-    <button id="btn-full">เต็มจอ</button>
+  <div id="wrapper">
+      <div id="ruffle-player"></div>
+      <button id="btn-full">เต็มจอ</button>
   </div>
 
-  <!-- ใช้ nightly เพื่อรองรับ AS3 ได้มากขึ้น -->
+  <!-- nightly build ของ Ruffle -->
   <script src="https://suparp2918.github.io/ruffle-demo/"></script>
   <script>
-    /* คอนฟิกทุก player ให้เล่นเองทันที */
-    window.RufflePlayer = { config:{ autoplay:"on", unmuteOverlay:"visible" } };  // :contentReference[oaicite:0]{index=0}
+    /* คอนฟิกให้เริ่มเล่นทันที */
+    window.RufflePlayer = window.RufflePlayer ?? {};
+    window.RufflePlayer.config = { autoplay:"on", unmuteOverlay:"visible" };
 
-    window.addEventListener("DOMContentLoaded", async () => {
-      const ruffle  = window.RufflePlayer.newest();
-      const player  = ruffle.createPlayer();
-      document.getElementById("player").appendChild(player);
+    window.addEventListener("DOMContentLoaded", () => {
+      const ruffle = window.RufflePlayer.newest();
+      const player = ruffle.createPlayer();
+      document.getElementById("ruffle-player").appendChild(player);
 
-      /* =>  จุดสำคัญ: ใช้ URLLoadOptions + autoplay แก้อาการนิ่ง */
-      await player.load({                    // :contentReference[oaicite:1]{index=1}
-        url: "1394.swf",
-        autoplay: "on"
-      });
+      /* โหลดแล้วสั่งเล่นทันที — กันอาการ “นิ่งจนต้องรีเฟรช” */
+      player.load("1394.swf").then(() => player.play());
 
-      /* ปุ่มสลับเต็มจอ */
+      /* ----- ปุ่ม Fullscreen ใต้ไฟล์ ----- */
       const btn = document.getElementById("btn-full");
-      btn.onclick = () => {
-        if (player.isFullscreen){ player.exitFullscreen(); btn.textContent="เต็มจอ"; }
-        else                    { player.enterFullscreen(); btn.textContent="ออกเต็มจอ"; }
-      };
+      btn.addEventListener("click", () => {
+        if (player.isFullscreen) {
+          player.exitFullscreen();
+          btn.textContent = "เต็มจอ";
+        } else {
+          player.enterFullscreen();
+          btn.textContent = "ออกเต็มจอ";
+        }
+      });
     });
   </script>
 </body>
