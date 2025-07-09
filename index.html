@@ -2,65 +2,86 @@
 <html lang="th">
 <head>
 <meta charset="utf-8">
-<title>Ruffle Demo – 1394.swf</title>
+<title>Ruffle – ลิงก์เลือกไฟล์ SWF</title>
+
 <style>
   html,body{
-    height:100%;margin:0;background:#e9f1ff;
-    display:flex;justify-content:center;align-items:flex-start;
-    font-family:sans-serif;
+    margin:0;background:#e9f1ff;font-family:sans-serif;
+    display:flex;justify-content:center;
   }
-
-  /* ครอบตัวเล่นกับปุ่มให้เกาะติดกัน */
-  #wrapper{margin-top:32px;text-align:center;}
-
-  /* ตัวเล่น Ruffle */
-  #ruffle-player{
-    width:90vw;max-width:1280px;aspect-ratio:4/3;
-    box-shadow:0 0 18px #0003;border-radius:6px;overflow:hidden;
+  #wrap{margin:32px 0;text-align:center;width:100%;max-width:1440px;}
+  /* ---- รายการลิงก์ ---- */
+  #link-list{
+    display:flex;flex-wrap:wrap;gap:12px;justify-content:center;margin-bottom:16px;
   }
-
-  /* ปุ่มเต็มจอ – อยู่ “ใต้ไฟล์” ชัด ๆ */
+  #link-list a{
+    padding:8px 14px;border-radius:6px;text-decoration:none;font-weight:600;
+    background:#ffffff;color:#003366;box-shadow:0 0 6px #0002;
+  }
+  #link-list a.active{background:#ffbe0b;color:#000;}
+  /* ---- ตัวเล่น ---- */
+  #player{
+    width:100%;aspect-ratio:4/3;border-radius:6px;box-shadow:0 0 18px #0003;overflow:hidden;
+  }
+  /* ---- ปุ่มเต็มจอ ---- */
   #btn-full{
-    margin-top:8px;
-    padding:6px 14px;border:none;border-radius:5px;
+    margin-top:8px;padding:8px 16px;border:none;border-radius:6px;
     background:#ffbe0b;font-weight:600;cursor:pointer;
   }
 </style>
 </head>
 <body>
 
-  <div id="wrapper">
-      <div id="ruffle-player"></div>
-      <button id="btn-full">เต็มจอ</button>
+<div id="wrap">
+  <!-- ลิงก์เลือกไฟล์ (เพิ่ม/ลบได้เอง) -->
+  <div id="link-list">
+    <a href="#" data-swf="1394.swf" class="active">บทเรียน 1</a>
+    <a href="#" data-swf="1395.swf">บทเรียน 2</a>
+    <!--  ถ้ามีไฟล์ใหม่ก็เพิ่มบรรทัดแบบนี้ -->
+    <!-- <a href="#" data-swf="1397.swf">บทเรียน 3</a> -->
   </div>
 
-  <!-- nightly build ของ Ruffle -->
-  <script src="https://suparp2918.github.io/ruffle-demo/"></script>
-  <script>
-    /* คอนฟิกให้เริ่มเล่นทันที */
-    window.RufflePlayer = window.RufflePlayer ?? {};
-    window.RufflePlayer.config = { autoplay:"on", unmuteOverlay:"visible" };
+  <!-- ตัวเล่น Ruffle -->
+  <div id="player"></div>
+  <button id="btn-full">เต็มจอ</button>
+</div>
 
-    window.addEventListener("DOMContentLoaded", () => {
-      const ruffle = window.RufflePlayer.newest();
-      const player = ruffle.createPlayer();
-      document.getElementById("ruffle-player").appendChild(player);
+<!-- Ruffle nightly -->
+<script src="https://unpkg.com/@ruffle-rs/ruffle@nightly"></script>
+<script>
+  window.RufflePlayer = {config:{autoplay:"on",unmuteOverlay:"visible"}};
 
-      /* โหลดแล้วสั่งเล่นทันที — กันอาการ “นิ่งจนต้องรีเฟรช” */
-      player.load("1394.swf").then(() => player.play());
+  let player;
+  async function loadSwf(file){
+    await player.load({url:file,autoplay:"on"});
+  }
 
-      /* ----- ปุ่ม Fullscreen ใต้ไฟล์ ----- */
-      const btn = document.getElementById("btn-full");
-      btn.addEventListener("click", () => {
-        if (player.isFullscreen) {
-          player.exitFullscreen();
-          btn.textContent = "เต็มจอ";
-        } else {
-          player.enterFullscreen();
-          btn.textContent = "ออกเต็มจอ";
-        }
+  window.addEventListener("DOMContentLoaded", async () => {
+    const r = window.RufflePlayer.newest();
+    player   = r.createPlayer();
+    document.getElementById("player").appendChild(player);
+
+    /* โหลดไฟล์แรก (ลิงก์ที่มี .active) */
+    const first = document.querySelector('#link-list a.active');
+    await loadSwf(first.dataset.swf);
+
+    /* คลิกแต่ละลิงก์เพื่อสลับไฟล์ */
+    document.querySelectorAll('#link-list a').forEach(a=>{
+      a.addEventListener('click',e=>{
+        e.preventDefault();
+        document.querySelector('#link-list a.active')?.classList.remove('active');
+        a.classList.add('active');
+        loadSwf(a.dataset.swf);
       });
     });
-  </script>
+
+    /* ปุ่มเต็มจอ */
+    const btn = document.getElementById("btn-full");
+    btn.onclick = () => {
+      if(player.isFullscreen){ player.exitFullscreen(); btn.textContent="เต็มจอ"; }
+      else                   { player.enterFullscreen(); btn.textContent="ออกเต็มจอ"; }
+    };
+  });
+</script>
 </body>
 </html>
