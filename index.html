@@ -2,86 +2,47 @@
 <html lang="th">
 <head>
 <meta charset="utf-8">
-<title>Ruffle – ลิงก์เลือกไฟล์ SWF</title>
+<title>Ruffle – 1394.swf (auto)</title>
 
 <style>
-  html,body{
-    margin:0;background:#e9f1ff;font-family:sans-serif;
-    display:flex;justify-content:center;
-  }
-  #wrap{margin:32px 0;text-align:center;width:100%;max-width:1440px;}
-  /* ---- รายการลิงก์ ---- */
-  #link-list{
-    display:flex;flex-wrap:wrap;gap:12px;justify-content:center;margin-bottom:16px;
-  }
-  #link-list a{
-    padding:8px 14px;border-radius:6px;text-decoration:none;font-weight:600;
-    background:#ffffff;color:#003366;box-shadow:0 0 6px #0002;
-  }
-  #link-list a.active{background:#ffbe0b;color:#000;}
-  /* ---- ตัวเล่น ---- */
-  #player{
-    width:100%;aspect-ratio:4/3;border-radius:6px;box-shadow:0 0 18px #0003;overflow:hidden;
-  }
-  /* ---- ปุ่มเต็มจอ ---- */
-  #btn-full{
-    margin-top:8px;padding:8px 16px;border:none;border-radius:6px;
-    background:#ffbe0b;font-weight:600;cursor:pointer;
-  }
+  html,body{height:100%;margin:0;background:#e9f1ff;display:flex;justify-content:center;align-items:flex-start;font-family:sans-serif;}
+  /* ครอบตัวเล่น + ปุ่มให้เกาะกันตรงกลาง */
+  #wrap{margin-top:32px;text-align:center}
+  #player{width:90vw;max-width:1280px;aspect-ratio:4/3;box-shadow:0 0 18px #0003;border-radius:6px;overflow:hidden}
+  #btn-full{margin-top:8px;padding:6px 14px;border:none;border-radius:5px;background:#ffbe0b;font-weight:600;cursor:pointer}
 </style>
 </head>
 <body>
 
-<div id="wrap">
-  <!-- ลิงก์เลือกไฟล์ (เพิ่ม/ลบได้เอง) -->
-  <div id="link-list">
-    <a href="#" data-swf="1394.swf" class="active">บทเรียน 1</a>
-    <a href="#" data-swf="1395.swf">บทเรียน 2</a>
-    <!--  ถ้ามีไฟล์ใหม่ก็เพิ่มบรรทัดแบบนี้ -->
-    <!-- <a href="#" data-swf="1397.swf">บทเรียน 3</a> -->
+  <div id="wrap">
+    <div id="player"></div>
+    <button id="btn-full">เต็มจอ</button>
   </div>
 
-  <!-- ตัวเล่น Ruffle -->
-  <div id="player"></div>
-  <button id="btn-full">เต็มจอ</button>
-</div>
+  <!-- ใช้ nightly เพื่อรองรับ AS3 ได้มากขึ้น -->
+  <script src="https://suparp2918.github.io/ruffle-demo/"></script>
+  <script>
+    /* คอนฟิกทุก player ให้เล่นเองทันที */
+    window.RufflePlayer = { config:{ autoplay:"on", unmuteOverlay:"visible" } };  // :contentReference[oaicite:0]{index=0}
 
-<!-- Ruffle nightly -->
-<script src="https://suparp2918.github.io/ruffle-demo/"></script>
-<script>
-  window.RufflePlayer = {config:{autoplay:"on",unmuteOverlay:"visible"}};
+    window.addEventListener("DOMContentLoaded", async () => {
+      const ruffle  = window.RufflePlayer.newest();
+      const player  = ruffle.createPlayer();
+      document.getElementById("player").appendChild(player);
 
-  let player;
-  async function loadSwf(file){
-    await player.load({url:file,autoplay:"on"});
-  }
-
-  window.addEventListener("DOMContentLoaded", async () => {
-    const r = window.RufflePlayer.newest();
-    player   = r.createPlayer();
-    document.getElementById("player").appendChild(player);
-
-    /* โหลดไฟล์แรก (ลิงก์ที่มี .active) */
-    const first = document.querySelector('#link-list a.active');
-    await loadSwf(first.dataset.swf);
-
-    /* คลิกแต่ละลิงก์เพื่อสลับไฟล์ */
-    document.querySelectorAll('#link-list a').forEach(a=>{
-      a.addEventListener('click',e=>{
-        e.preventDefault();
-        document.querySelector('#link-list a.active')?.classList.remove('active');
-        a.classList.add('active');
-        loadSwf(a.dataset.swf);
+      /* =>  จุดสำคัญ: ใช้ URLLoadOptions + autoplay แก้อาการนิ่ง */
+      await player.load({                    // :contentReference[oaicite:1]{index=1}
+        url: "1394.swf",
+        autoplay: "on"
       });
-    });
 
-    /* ปุ่มเต็มจอ */
-    const btn = document.getElementById("btn-full");
-    btn.onclick = () => {
-      if(player.isFullscreen){ player.exitFullscreen(); btn.textContent="เต็มจอ"; }
-      else                   { player.enterFullscreen(); btn.textContent="ออกเต็มจอ"; }
-    };
-  });
-</script>
+      /* ปุ่มสลับเต็มจอ */
+      const btn = document.getElementById("btn-full");
+      btn.onclick = () => {
+        if (player.isFullscreen){ player.exitFullscreen(); btn.textContent="เต็มจอ"; }
+        else                    { player.enterFullscreen(); btn.textContent="ออกเต็มจอ"; }
+      };
+    });
+  </script>
 </body>
 </html>
