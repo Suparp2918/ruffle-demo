@@ -15,6 +15,7 @@
   #ruffle-player{
     width:90vw;max-width:600px;aspect-ratio:4/3;
     box-shadow:0 0 18px #0003;border-radius:6px;overflow:hidden;
+    position:relative;min-height:400px;
   }
   /* ปุ่มเต็มจอ – อยู่ "ใต้ไฟล์" ชัด ๆ */
   #btn-full{
@@ -25,98 +26,147 @@
   /* Loading indicator */
   #loading{
     position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
-    color:#666;font-size:14px;
+    color:#666;font-size:16px;text-align:center;
   }
-  #ruffle-player{position:relative;}
+  /* Error message */
+  #error-msg{
+    position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+    color:#d32f2f;font-size:14px;text-align:center;
+    padding:20px;max-width:80%;
+  }
 </style>
 </head>
 <body>
   <div id="wrapper">
       <div id="ruffle-player">
-        <div id="loading">กำลังโหลด Flash...</div>
+        <div id="loading">กำลังโหลด Ruffle...</div>
       </div>
       <button id="btn-full">เต็มจอ</button>
   </div>
-  <!-- nightly build ของ Ruffle -->
-  <script src="https://suparp2918.github.io/ruffle-demo/"></script>
+  
+  <!-- ลองโหลด Ruffle จากหลายแหล่ง -->
   <script>
-    /* คอนฟิกให้เริ่มเล่นทันที */
-    window.RufflePlayer = window.RufflePlayer ?? {};
-    window.RufflePlayer.config = { 
-      autoplay: "on", 
-      unmuteOverlay: "visible",
-      allowScriptAccess: "always",
-      backgroundColor: "#ffffff",
-      wmode: "opaque"
-    };
+    // ฟังก์ชันโหลด script แบบ fallback
+    function loadScript(src) {
+      return new Promise((resolve, reject) => {
+        const script = document.createElement('script');
+        script.src = src;
+        script.onload = resolve;
+        script.onerror = reject;
+        document.head.appendChild(script);
+      });
+    }
 
-    // ฟังก์ชันสำหรับลองโหลดหลายครั้ง
-    async function loadWithRetry(player, url, maxRetries = 3) {
-      for (let i = 0; i < maxRetries; i++) {
+    // Ruffle URLs สำหรับ fallback
+    const ruffleUrls = [
+      'https://suparp2918.github.io/ruffle-demo/ruffle.js',
+      'https://unpkg.com/@ruffle-rs/ruffle@latest/ruffle.js',
+      'https://cdn.jsdelivr.net/npm/@ruffle-rs/ruffle@latest/ruffle.js'
+    ];
+
+    // ฟังก์ชันโหลด Ruffle พร้อม fallback
+    async function loadRuffleWithFallback() {
+      for (const url of ruffleUrls) {
         try {
-          console.log(`กำลังลองโหลด (ครั้งที่ ${i + 1}/${maxRetries})...`);
-          await player.load(url);
-          console.log('โหลดสำเร็จ!');
+          console.log(`กำลังลอง ${url}...`);
+          await loadScript(url);
+          console.log(`โหลด ${url} สำเร็จ`);
           return true;
         } catch (error) {
-          console.log(`การโหลดครั้งที่ ${i + 1} ล้มเหลว:`, error);
-          if (i === maxRetries - 1) {
-            throw error;
-          }
-          // รอสักครู่ก่อนลองใหม่
-          await new Promise(resolve => setTimeout(resolve, 1000));
+          console.log(`ไม่สามารถโหลด ${url}:`, error);
         }
       }
       return false;
     }
 
-    // รอให้ Ruffle โหลดเสร็จก่อน
+    // รอให้ Ruffle พร้อมใช้งาน
     function waitForRuffle() {
-      return new Promise((resolve) => {
-        if (window.RufflePlayer && window.RufflePlayer.newest) {
-          resolve();
-          return;
-        }
+      return new Promise((resolve, reject) => {
+        let attempts = 0;
+        const maxAttempts = 50;
         
         const checkRuffle = setInterval(() => {
+          attempts++;
           if (window.RufflePlayer && window.RufflePlayer.newest) {
             clearInterval(checkRuffle);
             resolve();
+          } else if (attempts >= maxAttempts) {
+            clearInterval(checkRuffle);
+            reject(new Error('Ruffle ไม่พร้อมใช้งาน'));
           }
         }, 100);
       });
     }
 
-    window.addEventListener("DOMContentLoaded", async () => {
+    // ฟังก์ชันแสดงข้อผิดพลาด
+    function showError(message) {
+      const loading = document.getElementById("loading");
+      if (loading) loading.remove();
+      
+      const errorDiv = document.createElement('div');
+      errorDiv.id = 'error-msg';
+      errorDiv.innerHTML = `
+        <strong>ไม่สามารถโหลด Flash Player ได้</strong><br>
+        ${message}<br><br>
+        <button onclick="location.reload()" style="background:#ff5722;color:white;border:none;padding:8px 16px;border-radius:4px;cursor:pointer;">
+          รีเฟรชหน้าใหม่
+        </button>
+      `;
+      document.getElementById("ruffle-player").appendChild(errorDiv);
+    }
+
+    // ฟังก์ชันหลัก
+    async function initializeRuffle() {
       try {
-        // รอให้ Ruffle โหลดเสร็จ
+        // คอนฟิก Ruffle
+        window.RufflePlayer = window.RufflePlayer ?? {};
+        window.RufflePlayer.config = { 
+          autoplay: "on", 
+          unmuteOverlay: "visible",
+          allowScriptAccess: "always",
+          backgroundColor: "#ffffff",
+          wmode: "opaque",
+          logLevel: "warn"
+        };
+
+        // ลอง Load Ruffle
+        const loaded = await loadRuffleWithFallback();
+        if (!loaded) {
+          showError('ไม่สามารถโหลด Ruffle library ได้');
+          return;
+        }
+
+        // รอให้ Ruffle พร้อม
         await waitForRuffle();
         console.log('Ruffle พร้อมใช้งาน');
 
+        // สร้าง player
         const ruffle = window.RufflePlayer.newest();
         const player = ruffle.createPlayer();
         const container = document.getElementById("ruffle-player");
         const loading = document.getElementById("loading");
         
-        // เพิ่ม player เข้าไปใน container
-        container.appendChild(player);
+        // ตั้งค่า player
+        player.style.width = "100%";
+        player.style.height = "100%";
         
-        // Event listeners สำหรับการโหลด
+        // เพิ่ม event listeners
         player.addEventListener("loadeddata", () => {
-          console.log('Flash file loaded');
+          console.log('Flash data loaded');
           if (loading) loading.remove();
         });
 
-        player.addEventListener("loadedmetadata", () => {
-          console.log('Flash metadata loaded');
-        });
-
         player.addEventListener("canplay", () => {
-          console.log('Flash can play');
-          // บังคับให้เล่นอีกครั้งเมื่อพร้อม
+          console.log('Flash ready to play');
+          if (loading) loading.remove();
+          // ลองเล่นอัตโนมัติ
           setTimeout(() => {
-            player.play();
-          }, 100);
+            try {
+              player.play();
+            } catch (e) {
+              console.log('Auto-play failed:', e);
+            }
+          }, 200);
         });
 
         player.addEventListener("playing", () => {
@@ -126,65 +176,68 @@
 
         player.addEventListener("error", (e) => {
           console.error('Flash error:', e);
+          showError('เกิดข้อผิดพลาดในการเล่นไฟล์ Flash');
         });
 
-        // โหลดไฟล์ Flash พร้อมกับการลองใหม่
-        await loadWithRetry(player, "1394.swf");
-        
-        // รอสักครู่แล้วสั่งเล่น
-        setTimeout(() => {
-          player.play();
-          console.log('เล่นอัตโนมัติ');
-        }, 500);
+        // เพิ่ม player ไป container
+        container.appendChild(player);
 
-        // ลองเล่นอีกครั้งหลังจาก 2 วินาที (สำหรับกรณีที่ไม่เล่น)
-        setTimeout(() => {
-          if (player.paused) {
-            player.play();
-            console.log('เล่นอัตโนมัติ (รอบที่ 2)');
-          }
-        }, 2000);
+        // โหลดไฟล์ SWF
+        try {
+          await player.load("1394.swf");
+          console.log('SWF loaded successfully');
+          
+          // ลองเล่นหลายครั้ง
+          setTimeout(() => player.play(), 500);
+          setTimeout(() => player.play(), 1500);
+          setTimeout(() => player.play(), 3000);
+          
+        } catch (error) {
+          console.error('Cannot load SWF:', error);
+          showError('ไม่สามารถโหลดไฟล์ 1394.swf ได้<br>ตรวจสอบว่าไฟล์อยู่ในโฟลเดอร์เดียวกัน');
+        }
 
-        /* ----- ปุ่ม Fullscreen ใต้ไฟล์ ----- */
+        // ปุ่ม Fullscreen
         const btn = document.getElementById("btn-full");
         btn.addEventListener("click", () => {
-          if (player.isFullscreen) {
-            player.exitFullscreen();
-            btn.textContent = "เต็มจอ";
-          } else {
-            player.enterFullscreen();
-            btn.textContent = "ออกเต็มจอ";
+          try {
+            if (player.isFullscreen) {
+              player.exitFullscreen();
+              btn.textContent = "เต็มจอ";
+            } else {
+              player.enterFullscreen();
+              btn.textContent = "ออกเต็มจอ";
+            }
+          } catch (e) {
+            console.error('Fullscreen error:', e);
           }
         });
 
       } catch (error) {
-        console.error('เกิดข้อผิดพลาดในการโหลด:', error);
-        const loading = document.getElementById("loading");
-        if (loading) {
-          loading.textContent = "เกิดข้อผิดพลาดในการโหลด กรุณารีเฟรชหน้าเว็บ";
-        }
+        console.error('Initialize error:', error);
+        showError('เกิดข้อผิดพลาดในการเตรียมความพร้อม');
       }
-    });
+    }
 
-    // เพิ่ม event listener สำหรับการคลิกหน้าจอ (กันปัญหา autoplay policy)
+    // เริ่มทำงานเมื่อหน้าเว็บโหลดเสร็จ
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', initializeRuffle);
+    } else {
+      initializeRuffle();
+    }
+
+    // เพิ่ม click handler สำหรับ autoplay policy
     document.addEventListener("click", () => {
       const player = document.querySelector("ruffle-player");
-      if (player && player.paused) {
-        player.play();
-        console.log('เล่นหลังจากคลิกหน้าจอ');
+      if (player && typeof player.play === 'function') {
+        try {
+          player.play();
+          console.log('Manual play triggered');
+        } catch (e) {
+          console.log('Manual play failed:', e);
+        }
       }
     }, { once: true });
-
-    // ป้องกันปัญหา autoplay บน browser บางตัว
-    window.addEventListener("load", () => {
-      setTimeout(() => {
-        const player = document.querySelector("ruffle-player");
-        if (player && player.paused) {
-          player.play();
-          console.log('เล่นหลังจากโหลดหน้าเว็บเสร็จ');
-        }
-      }, 1000);
-    });
   </script>
 </body>
 </html>
